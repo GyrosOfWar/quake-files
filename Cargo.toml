@@ -1,0 +1,9 @@
+[package]
+name = "quake-files"
+version = "0.1.0"
+authors = ["Martin Tomasi <martin.tomasi@gmail.com>"]
+
+[dependencies]
+image = "*"
+byteorder = "*"
+walkdir = "*"
