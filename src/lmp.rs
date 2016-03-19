@@ -50,7 +50,7 @@ impl LmpImage {
     {
         let colors: Vec<_> = self.data.iter().map(|px| palette.get(*px)).collect();
         let image = ImageBuffer::from_fn(self.width, self.height, |x, y| {
-            colors[(x * self.width + y) as usize]
+            colors[self.index(x, y)]
         });
         try!(image.save(path));
         Ok(())

@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use std::{io, str, fmt};
+use std::{io, str, fmt, fs};
 use byteorder::*;
 use error::*;
 use std::path::Path;
@@ -49,7 +49,7 @@ impl Header {
     }
 }
 
-struct DirectoryEntry {
+pub struct DirectoryEntry {
     name: [u8; 56],
     position: i32,
     length: i32,
@@ -72,7 +72,7 @@ impl DirectoryEntry {
         })
     }
 
-    fn name_str(&self) -> &str {
+    pub fn name_str(&self) -> &str {
         let name_bytes = &self.name;
         let nul = name_bytes.iter().position(|b| *b == 0).unwrap();
         let valid = &name_bytes[..nul];
@@ -148,6 +148,26 @@ impl PakFile {
             }
             None => Err(QError::FileNotFound),
         }
+    }
+
+    pub fn extract_to<P>(&mut self, path: P) -> QResult<()>
+        where P: AsRef<Path>
+    {
+        // Screw you, borrowck!
+        let names: Vec<String> = self.directory.iter().map(|f| f.name_str().into()).collect();
+        for name in names {
+            let content = try!(self.read_file(&name));
+            let full_path = path.as_ref().join(Path::new(&name));
+            if let Some(p) = full_path.parent() {
+                if !p.exists() {
+                    try!(fs::create_dir_all(p));
+                }
+            }
+
+            let mut file = try!(File::create(full_path));
+            try!(file.write_all(&content));
+        }
+        Ok(())
     }
 }
 

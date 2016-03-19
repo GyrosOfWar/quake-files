@@ -25,7 +25,7 @@ impl Palette {
         }
 
         for (i, c) in data.chunks(3).enumerate() {
-            let (r, g, b) = (c[2], c[1], c[0]);
+            let (r, g, b) = (c[0], c[1], c[2]);
             buf[i] = Rgb { data: [r, g, b] };
         }
 

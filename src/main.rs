@@ -8,16 +8,12 @@ pub mod error;
 pub mod palette;
 
 use pak::{create_pak, PakFile};
-use std::str::from_utf8;
-use std::env;
+use lmp::LmpImage;
+use palette::Palette;
+use std::{env, io};
+use std::fs::File;
 
 fn main() {
-    // let pak = create_pak("test_files", "test.pak").unwrap();
-    //println!("{:?}", pak);
-    // let mut pak = PakFile::read("test.pak").unwrap();
-    // println!("{:?}", pak);
-    // let bytes = pak.read_file("test1.txt").unwrap();
-    // println!("{:?}", from_utf8(&bytes));
     let args: Vec<String> = env::args().collect();
     let subcommand: &str = &args[1];
     match subcommand {
@@ -28,11 +24,24 @@ fn main() {
             let pak = create_pak(folder, &out_file).unwrap();
             println!("Result: {:?}", pak);
         },
-        "read" => {
+        "extract" => {
             let ref in_file = args[2];
-            println!("Reading PAK file {}", in_file);
-            let pak = PakFile::read(in_file).unwrap();
-            println!("{:?}", pak);
+            let ref extract_path = args[3];
+            println!("Extracting PAK file {} to {}", in_file, extract_path);
+            let mut pak = PakFile::read(in_file).unwrap();
+            pak.extract_to(extract_path).unwrap();
+        },
+        "convert_lmp" => {
+            let ref in_file = args[2];
+            let ref out_file = args[3];
+            let ref palette_file = args[4];
+            println!("Converting {} to {} with palette file {}!", in_file, out_file, palette_file);
+            let mut reader = io::BufReader::new(File::open(in_file).unwrap());
+            let lmp = LmpImage::read(&mut reader).unwrap();
+            let mut reader = io::BufReader::new(File::open(palette_file).unwrap());
+            let palette = Palette::read(&mut reader).unwrap();
+            
+            lmp.save_as(out_file, palette).unwrap();
         }
         x@_ => panic!("Unknown subcommand {}", x)
     }
