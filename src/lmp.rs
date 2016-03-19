@@ -1,3 +1,10 @@
+//! Quake 1 style LMP image. The file format is very simple and looks like this:
+//! width: signed 32 bit integer
+//! height: signed 32 bit integer 
+//! data: Sequence of bytes
+//! Each byte in the data section is an index into a palette, which is used to 
+//! obtain the actual color values.
+
 use std::io;
 // use std::io::prelude::*;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
@@ -6,6 +13,7 @@ use palette::Palette;
 use std::path::Path;
 use image::ImageBuffer;
 
+/// Quake 1 style LMP image. 
 pub struct LmpImage {
     width: u32,
     height: u32,
@@ -13,6 +21,7 @@ pub struct LmpImage {
 }
 
 impl LmpImage {
+    /// Opens the LMP image at the supplied `Read` instance.
     pub fn read<R>(reader: &mut R) -> QResult<LmpImage>
         where R: io::Read
     {
@@ -31,7 +40,7 @@ impl LmpImage {
             data: bytes,
         })
     }
-
+    /// Writes the image to the supplied `Write` instance.
     pub fn write<W>(&self, writer: &mut W) -> QResult<()>
         where W: io::Write
     {
@@ -45,6 +54,7 @@ impl LmpImage {
         Ok(())
     }
     
+    /// Saves the image to a file. See `image::ImageBuffer#save` for supported image formats.
     pub fn save_as<P>(&self, path: P, palette: Palette) -> QResult<()>
         where P: AsRef<Path> 
     {

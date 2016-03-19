@@ -7,3 +7,10 @@ authors = ["Martin Tomasi <martin.tomasi@gmail.com>"]
 image = "*"
 byteorder = "*"
 walkdir = "*"
+
+[dependencies.clippy]
+optional = true
+version = "*"
+
+[features]
+nightly = ["clippy"]

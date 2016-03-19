@@ -1,3 +1,6 @@
+//! Quake 1 PAK file. A PAK file is an archive format for storing
+//! game content files. 
+
 #![allow(unused)]
 
 use std::{io, str, fmt, fs};
@@ -49,6 +52,9 @@ impl Header {
     }
 }
 
+/// An entry in the directory of a PAK file. Each entry
+/// has a name, a position (offset) from the beginning of the
+/// file and a length.
 pub struct DirectoryEntry {
     name: [u8; 56],
     position: i32,
@@ -72,6 +78,7 @@ impl DirectoryEntry {
         })
     }
 
+    /// The name of the file. Length is limited to 56 bytes.
     pub fn name_str(&self) -> &str {
         let name_bytes = &self.name;
         let nul = name_bytes.iter().position(|b| *b == 0).unwrap();
@@ -99,6 +106,8 @@ impl fmt::Debug for DirectoryEntry {
     }
 }
 
+/// A Quake 1 PAK file. Stores a list of directory entries 
+/// and allows reading single files or extracting the archive to a path.
 #[derive(Debug)]
 pub struct PakFile {
     name: String,
@@ -107,6 +116,8 @@ pub struct PakFile {
 }
 
 impl PakFile {
+    /// Reads the .PAK file at the given path. Does not actually read 
+    /// any of the content files, just stores the directory entries.
     pub fn read<P>(path: P) -> QResult<PakFile>
         where P: AsRef<Path>
     {
@@ -133,6 +144,7 @@ impl PakFile {
         })
     }
 
+    /// Reads the contents of a file with the given name to a `Vec<u8>`.
     pub fn read_file(&mut self, name: &str) -> QResult<Vec<u8>> {
         let file = self.directory.iter().find(|f| f.name_str() == name);
         match file {
@@ -150,6 +162,7 @@ impl PakFile {
         }
     }
 
+    /// Extracts the contents of this PAK file to the given location.
     pub fn extract_to<P>(&mut self, path: P) -> QResult<()>
         where P: AsRef<Path>
     {
@@ -181,6 +194,8 @@ fn create_file_name(name: &OsStr) -> [u8; 56] {
     buf
 }
 
+/// Creates a PAK file from the given directory tree and saves 
+/// it to the given filename. 
 pub fn create_pak<P>(base_dir: P, name: &str) -> QResult<PakFile>
     where P: AsRef<Path>
 {

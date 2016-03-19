@@ -7,6 +7,7 @@ use std::collections::HashSet;
 
 pub type Color = Rgb<u8>;
 
+/// A palette for translating indexed colors to actual colors.
 #[derive(Debug)]
 pub struct Palette {
     map: Vec<Color>,
@@ -20,7 +21,7 @@ impl Palette {
         let mut data = vec![];
         try!(reader.read_to_end(&mut data));
 
-        if data.len() > 256 * 3 {
+        if data.len() > 256 * 3 || data.len() < 3 {
             return Err(QError::InvalidPaletteSize);
         }
 
@@ -37,9 +38,9 @@ impl Palette {
     {
         for color in &self.map[..] {
             let (r, g, b) = (color[0], color[1], color[2]);
-            try!(writer.write_u8(b));
-            try!(writer.write_u8(g));
             try!(writer.write_u8(r));
+            try!(writer.write_u8(g));
+            try!(writer.write_u8(b));
         }
 
         Ok(())
@@ -52,9 +53,9 @@ impl Palette {
         }
         let mut bytes = vec![];
         for color in colors {
-            bytes.push(color[2]);
-            bytes.push(color[1]);
             bytes.push(color[0]);
+            bytes.push(color[1]);
+            bytes.push(color[2]);
         }
         let mut cursor = io::Cursor::new(bytes);
         Palette::read(&mut cursor)
@@ -77,7 +78,7 @@ mod tests {
         for i in 0..256 {
             colors.push(i as u8);
             colors.push(i as u8);
-            colors.push(i as u8);
+            colors.push((255 - i) as u8);
         }
 
         let mut reader = io::Cursor::new(colors.clone());
@@ -87,11 +88,16 @@ mod tests {
             let i = i as u8;
             assert_eq!(color[0], i);
             assert_eq!(color[1], i);
-            assert_eq!(color[2], i);
+            assert_eq!(color[2], 255 - i);
         }
 
         let mut out = vec![];
         palette.write(&mut out).unwrap();
-        assert_eq!(out, colors);
+        for (i, (x, y)) in colors.chunks(3).zip(out.chunks(3)).enumerate() {
+            if x != y {
+                println!("{:?}, {:?} {:?}", i, x, y);
+            }
+            assert_eq!(x, y);
+        }
     }
 }
