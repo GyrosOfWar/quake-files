@@ -1,5 +1,5 @@
 //! Quake 1 PAK file. A PAK file is an archive format for storing
-//! game content files. 
+//! game content files.
 
 #![allow(unused)]
 

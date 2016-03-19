@@ -46,6 +46,19 @@ fn main() {
             let palette = Palette::read(&mut reader).unwrap();
             
             lmp.save_as(out_file, palette).unwrap();
+        },
+        "to_lmp" => {
+            let in_file = &args[2];
+            let lmp_out = &args[3];
+            let palette_out = &args[4];
+            println!("Converting {} to LMP file {} with palette file {}", in_file, lmp_out, palette_out);
+            let image = image::open(&in_file).unwrap();
+            let palette = Palette::from_image(&image).unwrap();
+            let lmp_image = LmpImage::from_image(&image, &palette);
+            let mut writer = File::create(&lmp_out).unwrap();
+            lmp_image.write(&mut writer).unwrap();
+            let mut writer = File::create(&palette_out).unwrap();
+            palette.write(&mut writer).unwrap();
         }
         x => panic!("Unknown subcommand {}", x)
     }

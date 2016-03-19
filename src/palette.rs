@@ -64,6 +64,10 @@ impl Palette {
     pub fn get(&self, idx: u8) -> Color {
         self.map[idx as usize]
     }
+    
+    pub fn map(&self) -> &[Color] {
+        &self.map
+    }
 }
 
 #[cfg(test)]

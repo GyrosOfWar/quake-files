@@ -11,7 +11,7 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use error::*;
 use palette::Palette;
 use std::path::Path;
-use image::ImageBuffer;
+use image::{ImageBuffer, GenericImage, DynamicImage, Pixel};
 
 /// Quake 1 style LMP image. 
 pub struct LmpImage {
@@ -40,6 +40,7 @@ impl LmpImage {
             data: bytes,
         })
     }
+    
     /// Writes the image to the supplied `Write` instance.
     pub fn write<W>(&self, writer: &mut W) -> QResult<()>
         where W: io::Write
@@ -52,6 +53,22 @@ impl LmpImage {
         }
 
         Ok(())
+    }
+    
+    pub fn from_image(image: &DynamicImage, palette: &Palette) -> LmpImage {
+            let mut data = vec![];
+            for (_, _, px) in image.pixels() {
+                let palette_idx = palette.map().iter().position(|x| *x == px.to_rgb()).unwrap();
+                data.push(palette_idx as u8);
+            }
+            let width = image.width();
+            let height = image.height();
+            
+            LmpImage {
+                width: width,
+                height: height, 
+                data: data
+            }
     }
     
     /// Saves the image to a file. See `image::ImageBuffer#save` for supported image formats.
