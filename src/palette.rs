@@ -59,6 +59,10 @@ impl Palette {
         let mut cursor = io::Cursor::new(bytes);
         Palette::read(&mut cursor)
     }
+    
+    pub fn get(&self, idx: u8) -> Color {
+        self.map[idx as usize]
+    }
 }
 
 #[cfg(test)]

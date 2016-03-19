@@ -44,7 +44,7 @@ impl Header {
         try!(writer.write_all(&self.magic));
         try!(writer.write_i32::<LittleEndian>(self.dir_offset));
         try!(writer.write_i32::<LittleEndian>(self.dir_length));
-        
+
         Ok(())
     }
 }
@@ -78,7 +78,7 @@ impl DirectoryEntry {
         let valid = &name_bytes[..nul];
         str::from_utf8(valid).unwrap()
     }
-    
+
     fn write<W>(&self, writer: &mut W) -> QResult<()>
         where W: io::Write
     {
@@ -103,7 +103,7 @@ impl fmt::Debug for DirectoryEntry {
 pub struct PakFile {
     name: String,
     directory: Vec<DirectoryEntry>,
-    reader: io::BufReader<File>
+    reader: io::BufReader<File>,
 }
 
 impl PakFile {
@@ -117,7 +117,6 @@ impl PakFile {
                        .into();
         let mut reader = io::BufReader::new(try!(File::open(path)));
         let header = try!(Header::read(&mut reader));
-        println!("{:?}", header);
         try!(reader.seek(io::SeekFrom::Start(header.dir_offset as u64)));
         let file_count = header.dir_length as usize / DIR_ENTRY_SIZE;
 
@@ -130,10 +129,10 @@ impl PakFile {
         Ok(PakFile {
             name: name,
             directory: entries,
-            reader: reader
+            reader: reader,
         })
     }
-    
+
     pub fn read_file(&mut self, name: &str) -> QResult<Vec<u8>> {
         let file = self.directory.iter().find(|f| f.name_str() == name);
         match file {
@@ -145,9 +144,9 @@ impl PakFile {
                     bytes_read += try!(self.reader.read(&mut buf)) as i32;
                 }
                 Ok(buf)
-                
-            },
-            None => Err(QError::FileNotFound)
+
+            }
+            None => Err(QError::FileNotFound),
         }
     }
 }
@@ -158,46 +157,45 @@ fn create_file_name(name: &OsStr) -> [u8; 56] {
     for (i, ch) in s.chars().enumerate().take(56) {
         buf[i] = ch as u8;
     }
-    
+
     buf
 }
 
-pub fn create_pak<P>(base_dir: P, name: &str) -> QResult<PakFile> where P: AsRef<Path> {
+pub fn create_pak<P>(base_dir: P, name: &str) -> QResult<PakFile>
+    where P: AsRef<Path>
+{
     let mut directory_offset = HEADER_SIZE as i32;
     let mut directory_length = 0;
     let mut writer = io::BufWriter::new(try!(File::create(name.clone())));
+    // Write magic bytes, then move ahead to the file section
     try!(write!(writer, "PACK"));
     try!(writer.seek(io::SeekFrom::Start(HEADER_SIZE as u64)));
-    
-    let mut buffer = vec![0; 1024];
     let mut directory_entries = vec![];
-    
+
     for entry in WalkDir::new(base_dir) {
         let entry = try!(entry);
         if entry.file_type().is_file() {
             let file_len = try!(entry.metadata()).len();
             let file_name = create_file_name(entry.file_name());
-                        
+
             let pak_entry = DirectoryEntry {
-                name: file_name, 
+                name: file_name,
                 length: file_len as i32,
-                position: directory_offset
+                position: directory_offset,
             };
-            println!("{:?}", pak_entry);
-            
+
             directory_entries.push(pak_entry);
-            
+
             let mut file = try!(File::open(entry.path()));
-            // Read the file to the buffer
+            // Read the file contents
+            let mut buffer = vec![];
             try!(file.read_to_end(&mut buffer));
-            // Write it to the PAK file
+            // Write the content to the PAK file
             try!(writer.write_all(&buffer));
-            
+
             // Move the offset and total length forward
             directory_offset += file_len as i32;
             directory_length += DIR_ENTRY_SIZE;
-            // Clear the buffer for reading the file
-            buffer.clear();
         }
     }
 
@@ -205,28 +203,27 @@ pub fn create_pak<P>(base_dir: P, name: &str) -> QResult<PakFile> where P: AsRef
     for entry in &directory_entries {
         entry.write(&mut writer);
     }
-    
+
     // Write the rest of the header
     try!(writer.seek(io::SeekFrom::Start(4)));
     try!(writer.write_i32::<LittleEndian>(directory_offset));
     try!(writer.write_i32::<LittleEndian>(directory_length as i32));
-    
+
+    // Assemble the struct
     let reader = io::BufReader::new(try!(File::open(name)));
-    
-    // Assemble the struct 
     Ok(PakFile {
         name: name.into(),
         directory: directory_entries,
-        reader: reader
+        reader: reader,
     })
-} 
+}
 
 #[cfg(test)]
 mod tests {
     use super::PakFile;
-    
+
     const PAK0: &'static str = "Id1/PAK0.PAK";
-    
+
     #[test]
     fn read_pak() {
         let pak = PakFile::read(PAK0).unwrap();

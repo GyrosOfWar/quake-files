@@ -2,6 +2,9 @@ use std::io;
 // use std::io::prelude::*;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use error::*;
+use palette::Palette;
+use std::path::Path;
+use image::ImageBuffer;
 
 pub struct LmpImage {
     width: u32,
@@ -39,6 +42,17 @@ impl LmpImage {
             try!(writer.write_u8(*byte));
         }
 
+        Ok(())
+    }
+    
+    pub fn save_as<P>(&self, path: P, palette: Palette) -> QResult<()>
+        where P: AsRef<Path> 
+    {
+        let colors: Vec<_> = self.data.iter().map(|px| palette.get(*px)).collect();
+        let image = ImageBuffer::from_fn(self.width, self.height, |x, y| {
+            colors[(x * self.width + y) as usize]
+        });
+        try!(image.save(path));
         Ok(())
     }
 

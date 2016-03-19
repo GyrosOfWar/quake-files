@@ -11,7 +11,8 @@ pub enum QError {
     BadMagicBytes,
     BadFileName,
     FileNotFound,
-    WalkDirError(walkdir::Error)
+    WalkDirError(walkdir::Error),
+    BadImage
 }
 
 impl From<io::Error> for QError {
