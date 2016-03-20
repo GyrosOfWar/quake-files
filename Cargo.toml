@@ -2,6 +2,10 @@
 name = "quake-files"
 version = "0.1.0"
 authors = ["Martin Tomasi <martin.tomasi@gmail.com>"]
+description = "A library for reading, writing and converting Quake 1 files"
+homepage = "https://github.com/GyrosOfWar/quake-files"
+repository = "https://github.com/GyrosOfWar/quake-files"
+license = "MIT"
 
 [dependencies]
 image = "0.7"
