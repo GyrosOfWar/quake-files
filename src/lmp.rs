@@ -1,19 +1,14 @@
-//! Quake 1 style LMP image. The file format is very simple and looks like this:
-//! width: signed 32 bit integer
-//! height: signed 32 bit integer 
-//! data: Sequence of bytes
-//! Each byte in the data section is an index into a palette, which is used to 
-//! obtain the actual color values.
+//! Quake 1 style LMP image.
 
 use std::io;
-// use std::io::prelude::*;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use error::*;
-use palette::Palette;
+use palette::{Palette, Color};
 use std::path::Path;
 use image::{ImageBuffer, GenericImage, DynamicImage, Pixel};
 
-/// Quake 1 style LMP image. 
+/// Quake 1 style LMP image. Does not store color values, only stores
+/// indices into a color palette. (see `quake_files::palette::Palette`)
 pub struct LmpImage {
     width: u32,
     height: u32,
@@ -40,7 +35,7 @@ impl LmpImage {
             data: bytes,
         })
     }
-    
+
     /// Writes the image to the supplied `Write` instance.
     pub fn write<W>(&self, writer: &mut W) -> QResult<()>
         where W: io::Write
@@ -54,31 +49,34 @@ impl LmpImage {
 
         Ok(())
     }
-    
-    pub fn from_image(image: &DynamicImage, palette: &Palette) -> LmpImage {
-            let mut data = vec![];
-            for (_, _, px) in image.pixels() {
-                let palette_idx = palette.map().iter().position(|x| *x == px.to_rgb()).unwrap();
-                data.push(palette_idx as u8);
-            }
-            let width = image.width();
-            let height = image.height();
-            
-            LmpImage {
-                width: width,
-                height: height, 
-                data: data
-            }
+
+    /// Creates a LMP image from a palette and some image. Returns an error if any of the image's 
+    /// colors are not in the palette.
+    pub fn from_image(image: &DynamicImage, palette: &Palette) -> QResult<LmpImage> {
+        let mut data = vec![];
+        for (_, _, px) in image.pixels() {
+            let palette_idx = try!(palette.map()
+                                          .iter()
+                                          .position(|x| *x == px.to_rgb())
+                                          .ok_or(QError::ColorNotInPalette));
+            data.push(palette_idx as u8);
+        }
+        let width = image.width();
+        let height = image.height();
+
+        Ok(LmpImage {
+            width: width,
+            height: height,
+            data: data,
+        })
     }
-    
+
     /// Saves the image to a file. See `image::ImageBuffer#save` for supported image formats.
     pub fn save_as<P>(&self, path: P, palette: Palette) -> QResult<()>
-        where P: AsRef<Path> 
+        where P: AsRef<Path>
     {
         let colors: Vec<_> = self.data.iter().map(|px| palette.get(*px)).collect();
-        let image = ImageBuffer::from_fn(self.width, self.height, |x, y| {
-            colors[self.index(x, y)]
-        });
+        let image = ImageBuffer::from_fn(self.width, self.height, |x, y| colors[self.index(x, y)]);
         try!(image.save(path));
         Ok(())
     }
@@ -88,8 +86,14 @@ impl LmpImage {
         (x * self.width + y) as usize
     }
 
+    #[inline]
     pub fn get(&self, x: u32, y: u32) -> u8 {
         self.data[self.index(x, y)]
+    }
+
+    /// Uses the given palette to translate an index in this image to a color. 
+    pub fn get_color(&self, x: u32, y: u32, palette: &Palette) -> Color {
+        palette.get(self.get(x, y))
     }
 
     pub fn width(&self) -> u32 {

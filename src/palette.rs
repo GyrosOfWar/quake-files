@@ -1,3 +1,5 @@
+//! A color palette, to be used in conjunction with LMP images.
+
 use image::Rgb;
 use error::*;
 use std::io;
@@ -14,6 +16,7 @@ pub struct Palette {
 }
 
 impl Palette {
+    /// Reads a palette from a reader and returns it.
     pub fn read<R>(reader: &mut R) -> QResult<Palette>
         where R: io::Read
     {
@@ -33,6 +36,7 @@ impl Palette {
         Ok(Palette { map: buf })
     }
 
+    /// Writes this palette to the given `Write` instance.
     pub fn write<W>(&self, writer: &mut W) -> QResult<()>
         where W: io::Write
     {
@@ -46,6 +50,8 @@ impl Palette {
         Ok(())
     }
 
+    /// Creates a palette from an image. It returns an error if there
+    /// are more than 256 colors in the image.
     pub fn from_image(image: &DynamicImage) -> QResult<Palette> {
         let mut colors = HashSet::new();
         for (_, _, pixel) in image.pixels() {
@@ -60,11 +66,13 @@ impl Palette {
         let mut cursor = io::Cursor::new(bytes);
         Palette::read(&mut cursor)
     }
-    
+
+    /// Returns the color for an index.
     pub fn get(&self, idx: u8) -> Color {
         self.map[idx as usize]
     }
-    
+
+    /// Returns all of the colors in this palette.
     pub fn map(&self) -> &[Color] {
         &self.map
     }

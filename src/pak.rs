@@ -55,7 +55,7 @@ impl Header {
 /// An entry in the directory of a PAK file. Each entry
 /// has a name, a position (offset) from the beginning of the
 /// file and a length.
-pub struct DirectoryEntry {
+struct DirectoryEntry {
     name: [u8; 56],
     position: i32,
     length: i32,

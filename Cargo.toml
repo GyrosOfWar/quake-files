@@ -4,19 +4,14 @@ version = "0.1.0"
 authors = ["Martin Tomasi <martin.tomasi@gmail.com>"]
 
 [dependencies]
-image = "*"
-byteorder = "*"
-walkdir = "*"
-log = "*"
+image = "0.7"
+byteorder = "0.5"
+walkdir = "0.1"
+log = "0.3"
 
 [dependencies.clippy]
 optional = true
-version = "*"
-
-[dependencies.env_logger]
-optional = true
-version = "*"
+version = "0.*"
 
 [features]
 nightly = ["clippy"]
-logging = ["env_logger"]
