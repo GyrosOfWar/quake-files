@@ -1,7 +1,7 @@
 //! A color palette, to be used in conjunction with LMP images.
 
 use image::Rgb;
-use error::*;
+use crate::error::*;
 use std::io;
 use byteorder::*;
 use image::{DynamicImage, GenericImageView};
@@ -22,7 +22,7 @@ impl Palette {
     {
         let mut buf = vec![Rgb { data: [0, 0, 0] }; 256];
         let mut data = vec![];
-        try!(reader.read_to_end(&mut data));
+        reader.read_to_end(&mut data)?;
 
         if data.len() > 256 * 3 || data.len() < 3 {
             return Err(QError::InvalidPaletteSize);
@@ -42,9 +42,9 @@ impl Palette {
     {
         for color in &self.map[..] {
             let (r, g, b) = (color[0], color[1], color[2]);
-            try!(writer.write_u8(r));
-            try!(writer.write_u8(g));
-            try!(writer.write_u8(b));
+            writer.write_u8(r)?;
+            writer.write_u8(g)?;
+            writer.write_u8(b)?;
         }
 
         Ok(())
@@ -105,7 +105,7 @@ mod tests {
 
         let mut out = vec![];
         palette.write(&mut out).unwrap();
-        for (i, (x, y)) in colors.chunks(3).zip(out.chunks(3)).enumerate() {
+        for (_i, (x, y)) in colors.chunks(3).zip(out.chunks(3)).enumerate() {
             assert_eq!(x, y);
         }
     }

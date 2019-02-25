@@ -5,7 +5,7 @@
 
 use std::{io, str, fmt, fs};
 use byteorder::*;
-use error::*;
+use crate::error::*;
 use std::path::Path;
 use std::fs::File;
 use std::io::prelude::*;
@@ -31,8 +31,8 @@ impl Header {
         if &magic != b"PACK" {
             return Err(QError::BadMagicBytes);
         }
-        let off = try!(reader.read_i32::<LittleEndian>());
-        let len = try!(reader.read_i32::<LittleEndian>());
+        let off = reader.read_i32::<LittleEndian>()?;
+        let len = reader.read_i32::<LittleEndian>()?;
 
         Ok(Header {
             magic: b"PACK",
@@ -44,9 +44,9 @@ impl Header {
     fn write<W>(&self, writer: &mut W) -> QResult<()>
         where W: io::Write
     {
-        try!(writer.write_all(&self.magic));
-        try!(writer.write_i32::<LittleEndian>(self.dir_offset));
-        try!(writer.write_i32::<LittleEndian>(self.dir_length));
+        writer.write_all(&self.magic)?;
+        writer.write_i32::<LittleEndian>(self.dir_offset)?;
+        writer.write_i32::<LittleEndian>(self.dir_length)?;
 
         Ok(())
     }
@@ -66,10 +66,10 @@ impl DirectoryEntry {
         where R: io::Read
     {
         let mut name = [0; 56];
-        try!(reader.read_exact(&mut name));
+        reader.read_exact(&mut name)?;
 
-        let pos = try!(reader.read_i32::<LittleEndian>());
-        let length = try!(reader.read_i32::<LittleEndian>());
+        let pos = reader.read_i32::<LittleEndian>()?;
+        let length = reader.read_i32::<LittleEndian>()?;
 
         Ok(DirectoryEntry {
             name: name,
@@ -89,9 +89,9 @@ impl DirectoryEntry {
     fn write<W>(&self, writer: &mut W) -> QResult<()>
         where W: io::Write
     {
-        try!(writer.write_all(&self.name));
-        try!(writer.write_i32::<LittleEndian>(self.position));
-        try!(writer.write_i32::<LittleEndian>(self.length));
+        writer.write_all(&self.name)?;
+        writer.write_i32::<LittleEndian>(self.position)?;
+        writer.write_i32::<LittleEndian>(self.length)?;
         Ok(())
     }
 }
@@ -121,19 +121,19 @@ impl PakFile {
     pub fn read<P>(path: P) -> QResult<PakFile>
         where P: AsRef<Path>
     {
-        let name = try!(path.as_ref()
+        let name = path.as_ref()
                             .file_name()
                             .and_then(|s| s.to_str())
-                            .ok_or(QError::BadFileName))
-                       .into();
-        let mut reader = io::BufReader::new(try!(File::open(path)));
-        let header = try!(Header::read(&mut reader));
-        try!(reader.seek(io::SeekFrom::Start(header.dir_offset as u64)));
+                            .ok_or(QError::BadFileName)?
+                        .into();
+        let mut reader = io::BufReader::new(File::open(path)?);
+        let header = Header::read(&mut reader)?;
+        reader.seek(io::SeekFrom::Start(header.dir_offset as u64))?;
         let file_count = header.dir_length as usize / DIR_ENTRY_SIZE;
 
         let mut entries = vec![];
         for _ in 0..file_count {
-            let entry = try!(DirectoryEntry::read(&mut reader));
+            let entry = DirectoryEntry::read(&mut reader)?;
             entries.push(entry);
         }
 
@@ -149,11 +149,11 @@ impl PakFile {
         let file = self.directory.iter().find(|f| f.name_str() == name);
         match file {
             Some(f) => {
-                try!(self.reader.seek(io::SeekFrom::Start(f.position as u64)));
+                self.reader.seek(io::SeekFrom::Start(f.position as u64))?;
                 let mut buf = vec![0; f.length as usize];
                 let mut bytes_read = 0;
                 while bytes_read < f.length {
-                    bytes_read += try!(self.reader.read(&mut buf)) as i32;
+                    bytes_read += self.reader.read(&mut buf)? as i32;
                 }
                 Ok(buf)
 
@@ -169,16 +169,16 @@ impl PakFile {
         // Screw you, borrowck!
         let names: Vec<String> = self.directory.iter().map(|f| f.name_str().into()).collect();
         for name in names {
-            let content = try!(self.read_file(&name));
+            let content = self.read_file(&name)?;
             let full_path = path.as_ref().join(Path::new(&name));
             if let Some(p) = full_path.parent() {
                 if !p.exists() {
-                    try!(fs::create_dir_all(p));
+                    fs::create_dir_all(p)?;
                 }
             }
 
-            let mut file = try!(File::create(full_path));
-            try!(file.write_all(&content));
+            let mut file = File::create(full_path)?;
+            file.write_all(&content)?;
         }
         Ok(())
     }
@@ -201,16 +201,16 @@ pub fn create_pak<P>(base_dir: P, name: &str) -> QResult<PakFile>
 {
     let mut directory_offset = HEADER_SIZE as i32;
     let mut directory_length = 0;
-    let mut writer = io::BufWriter::new(try!(File::create(name)));
+    let mut writer = io::BufWriter::new(File::create(name)?);
     // Write magic bytes, then move ahead to the file section
-    try!(write!(writer, "PACK"));
-    try!(writer.seek(io::SeekFrom::Start(HEADER_SIZE as u64)));
+    write!(writer, "PACK")?;
+    writer.seek(io::SeekFrom::Start(HEADER_SIZE as u64))?;
     let mut directory_entries = vec![];
 
     for entry in WalkDir::new(base_dir) {
-        let entry = try!(entry);
+        let entry = entry?;
         if entry.file_type().is_file() {
-            let file_len = try!(entry.metadata()).len();
+            let file_len = entry.metadata()?.len();
             let file_name = create_file_name(entry.file_name());
 
             let pak_entry = DirectoryEntry {
@@ -221,12 +221,12 @@ pub fn create_pak<P>(base_dir: P, name: &str) -> QResult<PakFile>
 
             directory_entries.push(pak_entry);
 
-            let mut file = try!(File::open(entry.path()));
+            let mut file = File::open(entry.path())?;
             // Read the file contents
             let mut buffer = vec![];
-            try!(file.read_to_end(&mut buffer));
+            file.read_to_end(&mut buffer)?;
             // Write the content to the PAK file
-            try!(writer.write_all(&buffer));
+            writer.write_all(&buffer)?;
 
             // Move the offset and total length forward
             directory_offset += file_len as i32;
@@ -240,12 +240,12 @@ pub fn create_pak<P>(base_dir: P, name: &str) -> QResult<PakFile>
     }
 
     // Write the rest of the header
-    try!(writer.seek(io::SeekFrom::Start(4)));
-    try!(writer.write_i32::<LittleEndian>(directory_offset));
-    try!(writer.write_i32::<LittleEndian>(directory_length as i32));
+    writer.seek(io::SeekFrom::Start(4))?;
+    writer.write_i32::<LittleEndian>(directory_offset)?;
+    writer.write_i32::<LittleEndian>(directory_length as i32)?;
 
     // Assemble the struct
-    let reader = io::BufReader::new(try!(File::open(name)));
+    let reader = io::BufReader::new(File::open(name)?);
     Ok(PakFile {
         name: name.into(),
         directory: directory_entries,
@@ -257,7 +257,7 @@ pub fn create_pak<P>(base_dir: P, name: &str) -> QResult<PakFile>
 mod tests {
     use super::PakFile;
 
-    const PAK0: &'static str = "Id1/PAK0.PAK";
+    const PAK0: &str = "Id1/PAK0.PAK";
 
     #[test]
     fn read_pak() {

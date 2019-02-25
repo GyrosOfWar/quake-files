@@ -2,8 +2,8 @@
 
 use std::io;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use error::*;
-use palette::{Palette, Color};
+use crate::error::*;
+use crate::palette::{Palette, Color};
 use std::path::Path;
 use image::{ImageBuffer, GenericImageView, DynamicImage, Pixel};
 
@@ -20,10 +20,10 @@ impl LmpImage {
     pub fn read<R>(reader: &mut R) -> QResult<LmpImage>
         where R: io::Read
     {
-        let width = try!(reader.read_u32::<LittleEndian>());
-        let height = try!(reader.read_u32::<LittleEndian>());
+        let width = reader.read_u32::<LittleEndian>()?;
+        let height = reader.read_u32::<LittleEndian>()?;
         let mut bytes = vec![];
-        try!(reader.read_to_end(&mut bytes));
+        reader.read_to_end(&mut bytes)?;
 
         if bytes.len() != (width * height) as usize {
             return Err(QError::InvalidLmp);
@@ -40,11 +40,11 @@ impl LmpImage {
     pub fn write<W>(&self, writer: &mut W) -> QResult<()>
         where W: io::Write
     {
-        try!(writer.write_u32::<LittleEndian>(self.width));
-        try!(writer.write_u32::<LittleEndian>(self.height));
+        writer.write_u32::<LittleEndian>(self.width)?;
+        writer.write_u32::<LittleEndian>(self.height)?;
 
         for byte in &self.data {
-            try!(writer.write_u8(*byte));
+            writer.write_u8(*byte)?;
         }
 
         Ok(())
@@ -55,10 +55,10 @@ impl LmpImage {
     pub fn from_image(image: &DynamicImage, palette: &Palette) -> QResult<LmpImage> {
         let mut data = vec![];
         for (_, _, px) in image.pixels() {
-            let palette_idx = try!(palette.map()
+            let palette_idx = palette.map()
                                           .iter()
                                           .position(|x| *x == px.to_rgb())
-                                          .ok_or(QError::ColorNotInPalette));
+                                          .ok_or(QError::ColorNotInPalette)?;
             data.push(palette_idx as u8);
         }
         let width = image.width();
@@ -77,7 +77,7 @@ impl LmpImage {
     {
         let colors: Vec<_> = self.data.iter().map(|px| palette.get(*px)).collect();
         let image = ImageBuffer::from_fn(self.width, self.height, |x, y| colors[self.index(x, y)]);
-        try!(image.save(path));
+        image.save(path)?;
         Ok(())
     }
 
