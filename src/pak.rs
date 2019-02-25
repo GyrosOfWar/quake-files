@@ -201,7 +201,7 @@ pub fn create_pak<P>(base_dir: P, name: &str) -> QResult<PakFile>
 {
     let mut directory_offset = HEADER_SIZE as i32;
     let mut directory_length = 0;
-    let mut writer = io::BufWriter::new(try!(File::create(name.clone())));
+    let mut writer = io::BufWriter::new(try!(File::create(name)));
     // Write magic bytes, then move ahead to the file section
     try!(write!(writer, "PACK"));
     try!(writer.seek(io::SeekFrom::Start(HEADER_SIZE as u64)));

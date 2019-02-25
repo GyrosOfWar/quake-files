@@ -5,7 +5,7 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use error::*;
 use palette::{Palette, Color};
 use std::path::Path;
-use image::{ImageBuffer, GenericImage, DynamicImage, Pixel};
+use image::{ImageBuffer, GenericImageView, DynamicImage, Pixel};
 
 /// Quake 1 style LMP image. Does not store color values, only stores
 /// indices into a color palette. (see `quake_files::palette::Palette`)

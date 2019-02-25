@@ -1,6 +1,3 @@
-#![cfg_attr(feature="nightly", feature(plugin))]
-#![cfg_attr(feature="nightly", plugin(clippy))]
-
 extern crate image;
 extern crate byteorder;
 extern crate walkdir;
@@ -11,6 +8,8 @@ pub mod pak;
 pub mod lmp;
 pub mod error;
 pub mod palette;
+pub mod ffi;
+pub mod wad;
 
 pub use pak::{PakFile, create_pak};
 pub use lmp::LmpImage;

@@ -4,7 +4,7 @@ use image::Rgb;
 use error::*;
 use std::io;
 use byteorder::*;
-use image::{DynamicImage, GenericImage};
+use image::{DynamicImage, GenericImageView};
 use std::collections::HashSet;
 
 pub type Color = Rgb<u8>;
@@ -106,9 +106,6 @@ mod tests {
         let mut out = vec![];
         palette.write(&mut out).unwrap();
         for (i, (x, y)) in colors.chunks(3).zip(out.chunks(3)).enumerate() {
-            if x != y {
-                println!("{:?}, {:?} {:?}", i, x, y);
-            }
             assert_eq!(x, y);
         }
     }
