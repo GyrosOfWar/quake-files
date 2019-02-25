@@ -1,2 +1,8 @@
 # quake-files
-A small library for reading, writing and converting Quake 1 files. 
+Library for reading and writing Quake 1 files.
+
+Currently supports the following file types:
+
+* PAK files: Reading and writing
+* LMP images: Reading and writing (can also be created from an `image::DynamicImage` and a palette)
+* Palette files.
