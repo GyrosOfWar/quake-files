@@ -1,8 +1,7 @@
 use std::io;
-use std::path::Path;
 use std::io::prelude::*;
+use std::path::Path;
 
 struct WadHeader {
     magic: &'static str,
-    
 }

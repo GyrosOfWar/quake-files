@@ -1,11 +1,11 @@
 //! A color palette, to be used in conjunction with LMP images.
 
-use image::Rgb;
 use crate::error::*;
-use std::io;
 use byteorder::*;
+use image::Rgb;
 use image::{DynamicImage, GenericImageView};
 use std::collections::HashSet;
+use std::io;
 
 pub type Color = Rgb<u8>;
 
@@ -18,7 +18,8 @@ pub struct Palette {
 impl Palette {
     /// Reads a palette from a reader and returns it.
     pub fn read<R>(reader: &mut R) -> QResult<Palette>
-        where R: io::Read
+    where
+        R: io::Read,
     {
         let mut buf = vec![Rgb { data: [0, 0, 0] }; 256];
         let mut data = vec![];
@@ -38,7 +39,8 @@ impl Palette {
 
     /// Writes this palette to the given `Write` instance.
     pub fn write<W>(&self, writer: &mut W) -> QResult<()>
-        where W: io::Write
+    where
+        W: io::Write,
     {
         for color in &self.map[..] {
             let (r, g, b) = (color[0], color[1], color[2]);

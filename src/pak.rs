@@ -3,14 +3,14 @@
 
 #![allow(unused)]
 
-use std::{io, str, fmt, fs};
-use byteorder::*;
 use crate::error::*;
-use std::path::Path;
+use byteorder::*;
+use std::ffi::OsStr;
 use std::fs::File;
 use std::io::prelude::*;
-use walkdir::{WalkDir, DirEntry};
-use std::ffi::OsStr;
+use std::path::Path;
+use std::{fmt, fs, io, str};
+use walkdir::{DirEntry, WalkDir};
 
 const DIR_ENTRY_SIZE: usize = 64;
 const HEADER_SIZE: usize = 12;
@@ -24,7 +24,8 @@ struct Header {
 
 impl Header {
     fn read<R>(reader: &mut R) -> QResult<Header>
-        where R: io::Read
+    where
+        R: io::Read,
     {
         let mut magic = [0; 4];
         reader.read_exact(&mut magic);
@@ -42,7 +43,8 @@ impl Header {
     }
 
     fn write<W>(&self, writer: &mut W) -> QResult<()>
-        where W: io::Write
+    where
+        W: io::Write,
     {
         writer.write_all(&self.magic)?;
         writer.write_i32::<LittleEndian>(self.dir_offset)?;
@@ -63,7 +65,8 @@ struct DirectoryEntry {
 
 impl DirectoryEntry {
     fn read<R>(reader: &mut R) -> QResult<DirectoryEntry>
-        where R: io::Read
+    where
+        R: io::Read,
     {
         let mut name = [0; 56];
         reader.read_exact(&mut name)?;
@@ -87,7 +90,8 @@ impl DirectoryEntry {
     }
 
     fn write<W>(&self, writer: &mut W) -> QResult<()>
-        where W: io::Write
+    where
+        W: io::Write,
     {
         writer.write_all(&self.name)?;
         writer.write_i32::<LittleEndian>(self.position)?;
@@ -97,16 +101,18 @@ impl DirectoryEntry {
 }
 
 impl fmt::Debug for DirectoryEntry {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-               "DirectoryEntry {{ name: {}, position: {}, length: {} }}",
-               self.name_str(),
-               self.position,
-               self.length)
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "DirectoryEntry {{ name: {}, position: {}, length: {} }}",
+            self.name_str(),
+            self.position,
+            self.length
+        )
     }
 }
 
-/// A Quake 1 PAK file. Stores a list of directory entries 
+/// A Quake 1 PAK file. Stores a list of directory entries
 /// and allows reading single files or extracting the archive to a path.
 #[derive(Debug)]
 pub struct PakFile {
@@ -116,16 +122,18 @@ pub struct PakFile {
 }
 
 impl PakFile {
-    /// Reads the .PAK file at the given path. Does not actually read 
+    /// Reads the .PAK file at the given path. Does not actually read
     /// any of the content files, just stores the directory entries.
     pub fn read<P>(path: P) -> QResult<PakFile>
-        where P: AsRef<Path>
+    where
+        P: AsRef<Path>,
     {
-        let name = path.as_ref()
-                            .file_name()
-                            .and_then(|s| s.to_str())
-                            .ok_or(QError::BadFileName)?
-                        .into();
+        let name = path
+            .as_ref()
+            .file_name()
+            .and_then(|s| s.to_str())
+            .ok_or(QError::BadFileName)?
+            .into();
         let mut reader = io::BufReader::new(File::open(path)?);
         let header = Header::read(&mut reader)?;
         reader.seek(io::SeekFrom::Start(header.dir_offset as u64))?;
@@ -156,7 +164,6 @@ impl PakFile {
                     bytes_read += self.reader.read(&mut buf)? as i32;
                 }
                 Ok(buf)
-
             }
             None => Err(QError::FileNotFound),
         }
@@ -164,7 +171,8 @@ impl PakFile {
 
     /// Extracts the contents of this PAK file to the given location.
     pub fn extract_to<P>(&mut self, path: P) -> QResult<()>
-        where P: AsRef<Path>
+    where
+        P: AsRef<Path>,
     {
         // Screw you, borrowck!
         let names: Vec<String> = self.directory.iter().map(|f| f.name_str().into()).collect();
@@ -194,10 +202,11 @@ fn create_file_name(name: &OsStr) -> [u8; 56] {
     buf
 }
 
-/// Creates a PAK file from the given directory tree and saves 
-/// it to the given filename. 
+/// Creates a PAK file from the given directory tree and saves
+/// it to the given filename.
 pub fn create_pak<P>(base_dir: P, name: &str) -> QResult<PakFile>
-    where P: AsRef<Path>
+where
+    P: AsRef<Path>,
 {
     let mut directory_offset = HEADER_SIZE as i32;
     let mut directory_length = 0;
